@@ -94,7 +94,7 @@ class NaivePickAndPlace(gym.Env):
             self.obj = self.pos
         else: 
             self.obj = self.space.sample()
-        self.d_old = np.linalg.norm(self.pos - self.goal)
+        self.d_old = np.linalg.norm(self.obj - self.goal)
         self.d_a2o = np.linalg.norm(self.pos - self.obj)
         self.d_o2g = np.linalg.norm(self.obj - self.goal)
         return self._get_obs()
@@ -181,9 +181,9 @@ class NaivePickAndPlace(gym.Env):
         goal = obs[self.dim*2:]
         if_reach = np.linalg.norm(pos - obj)< self.error
         if not if_reach:
-            act =  np.append((obj - pos),1)
+            act =  np.append((obj - pos)*2,1)
         else:
-            act = np.append((goal - pos),1)
+            act = np.append((goal - pos)*2,-1)
         if self.mode == 'dynamic':
             act = np.append(act, pos - obj)
         return act
@@ -194,7 +194,17 @@ register(
 )
 
 if __name__ == '__main__':
-    env = NaivePickAndPlace(use_grasp = False)
+    config = {
+        'dim': 2,
+        'reward_type': 'sparse',
+        'error': 0.05, 
+        'use_grasp': True, 
+        'vel': 0.2, 
+        'init_grasp_rate': 0.0,
+        'use_her': False, 
+        'mode': 'static'
+    }
+    env = NaivePickAndPlace(config = config)
     obs = env.reset()
     rew_data = []
     for i in range(50):
@@ -203,5 +213,8 @@ if __name__ == '__main__':
         env.render(mode = 'human')
         rew_data.append(reward)
         print('[obs, reward, done]', obs, reward, done)
-    plt.plot(np.arange(50), rew_data)
+        if done: 
+            break
+    plt.title('total reward: '+str(sum(rew_data)) + '\n total step: ' + str(len(rew_data)))
+    plt.plot(np.arange(len(rew_data)), rew_data)
     plt.show()
